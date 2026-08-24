@@ -1,0 +1,11 @@
+# Binaries
+finance-platform
+*.exe
+
+# Environment / secrets
+.env
+.env.local
+
+# OS / editor
+.DS_Store
+.idea/
