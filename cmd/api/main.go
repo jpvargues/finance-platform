@@ -17,6 +17,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	userJSON, err := json.Marshal(s)
 	if err != nil {
 		fmt.Println("JSON encoding error:", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 	w.Write(userJSON)
