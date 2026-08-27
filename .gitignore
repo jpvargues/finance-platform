@@ -1,6 +1,8 @@
 # Binaries
 finance-platform
 *.exe
+*.test
+*.out
 
 # Environment / secrets
 .env
