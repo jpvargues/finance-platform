@@ -19,12 +19,10 @@ type StatusCode struct {
 
 var db *sql.DB
 
-/*
-connectDB opens a connection pool to Postgres. Note: sql.Open only
-validates the connection string and prepares the pool — it doesn't
-actually contact the server. Ping() below performs the real handshake
-and is what tells us if Postgres is actually reachable.
-*/
+// connectDB opens a connection pool to Postgres. Note: sql.Open only
+// validates the connection string and prepares the pool — it doesn't
+// actually contact the server. Ping() below performs the real handshake
+// and is what tells us if Postgres is actually reachable.
 func connectDB() error {
 	var err error
 	dbURL := os.Getenv("DATABASE_URL")
