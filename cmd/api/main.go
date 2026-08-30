@@ -11,7 +11,6 @@ import (
 	"strconv"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-
 	"github.com/joho/godotenv"
 )
 
@@ -34,7 +33,6 @@ var db *sql.DB
 func respondError(w http.ResponseWriter, statusCode int, logMsg string, err error) {
 	log.Println(logMsg, err)
 	http.Error(w, logMsg, statusCode)
-	return
 }
 
 func getAllETFs() ([]ETF, error) {
@@ -90,7 +88,6 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var s StatusCode
 	s.Status = "ok"
-
 	if err := db.Ping(); err != nil {
 		s.Database = "disconnected"
 	} else {
@@ -110,7 +107,7 @@ func etfs(w http.ResponseWriter, r *http.Request) {
 
 	etfs, err := getAllETFs()
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "database query error", err)
+		respondError(w, http.StatusInternalServerError, "database query error:", err)
 		return
 	}
 
@@ -119,7 +116,6 @@ func etfs(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, "JSON encoding error:", err)
 		return
 	}
-
 	w.Write(etfJSON)
 }
 
@@ -143,10 +139,9 @@ func etfDetailHandler(w http.ResponseWriter, r *http.Request) {
 
 	etfJSON, err := json.Marshal(etf)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "JSON encoding error:", err)
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("JSON encoding error: id=%d", id), err)
 		return
 	}
-
 	w.Write(etfJSON)
 }
 
@@ -154,7 +149,6 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		fmt.Println("No .env file found, relying on real environment variables")
 	}
-
 	if err := connectDB(); err != nil {
 		fmt.Println("Database connection failed:", err)
 		return
@@ -164,6 +158,7 @@ func main() {
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/etfs", etfs)
 	http.HandleFunc("GET /etfs/{id}", etfDetailHandler)
+
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		fmt.Println("Server failed:", err)
