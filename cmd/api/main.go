@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
@@ -27,6 +28,12 @@ type ETF struct {
 }
 
 var db *sql.DB
+
+func respondError(w http.ResponseWriter, statusCode int, logMsg string, err error) {
+	log.Println(logMsg, err)
+	http.Error(w, logMsg, statusCode)
+	return
+}
 
 func getAllETFs() ([]ETF, error) {
 	rows, err := db.Query("SELECT id, ticker, name, isin, is_accumulating, category FROM etfs")
@@ -78,8 +85,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 
 	statusJSON, err := json.Marshal(s)
 	if err != nil {
-		fmt.Println("JSON encoding error:", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		respondError(w, http.StatusInternalServerError, "JSON encoding error:", err)
 		return
 	}
 	w.Write(statusJSON)
@@ -90,14 +96,13 @@ func etfs(w http.ResponseWriter, r *http.Request) {
 
 	etfs, err := getAllETFs()
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		respondError(w, http.StatusInternalServerError, "database query error", err)
 		return
 	}
 
 	etfJSON, err := json.Marshal(etfs)
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		fmt.Println("JSON encoding error:", err)
+		respondError(w, http.StatusInternalServerError, "JSON encoding error:", err)
 		return
 	}
 
