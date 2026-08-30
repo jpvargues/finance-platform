@@ -3,10 +3,12 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
@@ -53,6 +55,18 @@ func getAllETFs() ([]ETF, error) {
 	}
 
 	return etfs, nil
+}
+
+func getETFByID(id int) (ETF, error) {
+	row := db.QueryRow("SELECT id, ticker, name, isin, is_accumulating, category FROM etfs WHERE id = $1", id)
+
+	etf := ETF{}
+	err := row.Scan(&etf.ID, &etf.Ticker, &etf.Name, &etf.ISIN, &etf.IsAccumulating, &etf.Category)
+	if err != nil {
+		return etf, err
+	}
+
+	return etf, nil
 }
 
 // connectDB opens a connection pool to Postgres. Note: sql.Open only
@@ -109,6 +123,33 @@ func etfs(w http.ResponseWriter, r *http.Request) {
 	w.Write(etfJSON)
 }
 
+func etfDetailHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, fmt.Sprintf("invalid ID: %s", idStr), err)
+		return
+	}
+
+	etf, err := getETFByID(id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			respondError(w, http.StatusNotFound, fmt.Sprintf("ETF not found: id=%d", id), err)
+		} else {
+			respondError(w, http.StatusInternalServerError, "database query error:", err)
+		}
+		return
+	}
+
+	etfJSON, err := json.Marshal(etf)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "JSON encoding error:", err)
+		return
+	}
+
+	w.Write(etfJSON)
+}
+
 func main() {
 	if err := godotenv.Load(); err != nil {
 		fmt.Println("No .env file found, relying on real environment variables")
@@ -122,6 +163,7 @@ func main() {
 
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/etfs", etfs)
+	http.HandleFunc("GET /etfs/{id}", etfDetailHandler)
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		fmt.Println("Server failed:", err)
