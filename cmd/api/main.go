@@ -35,7 +35,7 @@ func getAllETFs() ([]ETF, error) {
 	}
 	defer rows.Close()
 
-	var etfs []ETF
+	etfs := []ETF{}
 	for rows.Next() {
 		var e ETF
 		err := rows.Scan(&e.ID, &e.Ticker, &e.Name, &e.ISIN, &e.IsAccumulating, &e.Category)
