@@ -17,7 +17,36 @@ type StatusCode struct {
 	Database string `json:"database"`
 }
 
+type ETF struct {
+	ID             int    `json:"id"`
+	Ticker         string `json:"ticker"`
+	Name           string `json:"name"`
+	ISIN           string `json:"isin"`
+	IsAccumulating bool   `json:"is_accumulating"`
+	Category       string `json:"category"`
+}
+
 var db *sql.DB
+
+func getAllETFs() ([]ETF, error) {
+	rows, err := db.Query("SELECT id, ticker, name, isin, is_accumulating, category FROM etfs")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var etfs []ETF
+	for rows.Next() {
+		var e ETF
+		err := rows.Scan(&e.ID, &e.Ticker, &e.Name, &e.ISIN, &e.IsAccumulating, &e.Category)
+		if err != nil {
+			return nil, err
+		}
+		etfs = append(etfs, e)
+	}
+
+	return etfs, nil
+}
 
 // connectDB opens a connection pool to Postgres. Note: sql.Open only
 // validates the connection string and prepares the pool — it doesn't
@@ -47,13 +76,32 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 		s.Database = "connected"
 	}
 
-	userJSON, err := json.Marshal(s)
+	statusJSON, err := json.Marshal(s)
 	if err != nil {
 		fmt.Println("JSON encoding error:", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-	w.Write(userJSON)
+	w.Write(statusJSON)
+}
+
+func etfs(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	etfs, err := getAllETFs()
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	etfJSON, err := json.Marshal(etfs)
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		fmt.Println("JSON encoding error:", err)
+		return
+	}
+
+	w.Write(etfJSON)
 }
 
 func main() {
@@ -68,6 +116,7 @@ func main() {
 	fmt.Println("Database connected")
 
 	http.HandleFunc("/health", healthHandler)
+	http.HandleFunc("/etfs", etfs)
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		fmt.Println("Server failed:", err)
