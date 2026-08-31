@@ -121,6 +121,8 @@ func etfs(w http.ResponseWriter, r *http.Request) {
 }
 
 func etfDetailHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
