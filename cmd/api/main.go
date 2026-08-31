@@ -35,6 +35,13 @@ func respondError(w http.ResponseWriter, statusCode int, logMsg string, err erro
 	http.Error(w, logMsg, statusCode)
 }
 
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		next.ServeHTTP(w, r)
+	})
+}
+
 func getAllETFs() ([]ETF, error) {
 	rows, err := db.Query("SELECT id, ticker, name, isin, is_accumulating, category FROM etfs")
 	if err != nil {
@@ -104,7 +111,6 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 
 func etfs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	etfs, err := getAllETFs()
 	if err != nil {
@@ -122,7 +128,6 @@ func etfs(w http.ResponseWriter, r *http.Request) {
 
 func etfDetailHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -158,11 +163,12 @@ func main() {
 	}
 	fmt.Println("Database connected")
 
-	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/etfs", etfs)
-	http.HandleFunc("GET /etfs/{id}", etfDetailHandler)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", healthHandler)
+	mux.HandleFunc("/etfs", etfs)
+	mux.HandleFunc("GET /etfs/{id}", etfDetailHandler)
 
-	err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":8080", corsMiddleware(mux))
 	if err != nil {
 		fmt.Println("Server failed:", err)
 	}
