@@ -1,41 +1,16 @@
-import { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import EtfList from "./EtfList";
+import EtfDetail from "./EtfDetail";
 import "./App.css";
 
-interface ETF {
-  id: number;
-  ticker: string;
-  name: string;
-  isin: string;
-  is_accumulating: boolean;
-  category: string;
-}
-
 function App() {
-  const [etfs, setEtfs] = useState<ETF[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    fetch("http://localhost:8080/etfs")
-      .then((response) => response.json())
-      .then((data) => setEtfs(data))
-      .catch(() => setError("Error loading ETFs"))
-      .finally(() => setLoading(false));
-  }, []);
-
   return (
-    <>
-      <h1>ETF Explorer</h1>
-      {loading && <p>Loading...</p>}
-      {error && <p>{error}</p>}
-      <ul>
-        {etfs.map((etf) => (
-          <li key={etf.id}>
-            {etf.ticker} — {etf.name} ({etf.category})
-          </li>
-        ))}
-      </ul>
-    </>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<EtfList />} />
+        <Route path="/etfs/:id" element={<EtfDetail />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
